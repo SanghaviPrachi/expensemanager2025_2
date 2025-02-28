@@ -1,53 +1,55 @@
-import '/auth/auth_service.dart';
+import 'package:flutter/material.dart';
+import '../auth/auth_service.dart';
 import 'home_screen.dart';
 import 'register_screen.dart';
-import '/widgets/custom_snackbar.dart';
-import 'package:flutter/material.dart';
 
 class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key});
-
   @override
-  State<LoginScreen> createState() => _LoginScreenState();
+  _LoginScreenState createState() => _LoginScreenState();
 }
 
 class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
-  final AuthService authService = AuthService();
   bool isLoading = false;
 
   void login() async {
     setState(() => isLoading = true);
-    String? error = await authService.loginUser(
-      emailController.text.trim(),
-      passwordController.text.trim(),
-    );
-
-    if (error == null) {
-      Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const HomeScreen()));
-    } else {
-      showCustomSnackbar(context, error, Colors.red);
+    try {
+      await AuthService().loginUser(
+        emailController.text.trim(),
+        passwordController.text.trim(),
+      );
+      Navigator.pushReplacement(
+          context, MaterialPageRoute(builder: (context) => HomeScreen()));
+    } catch (e) {
+      setState(() => isLoading = false);
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(e.toString())));
     }
-
-    setState(() => isLoading = false);
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Login')),
+      appBar: AppBar(title: Text('Login')),
       body: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: EdgeInsets.all(16.0),
         child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            TextField(controller: emailController, decoration: const InputDecoration(labelText: 'Email')),
-            TextField(controller: passwordController, obscureText: true, decoration: const InputDecoration(labelText: 'Password')),
-            const SizedBox(height: 20),
-            isLoading ? const CircularProgressIndicator() : ElevatedButton(onPressed: login, child: const Text('Login')),
-            TextButton(onPressed: () {
-              Navigator.push(context, MaterialPageRoute(builder: (context) => const RegisterScreen()));
-            }, child: const Text("Don't have an account? Register"))
+            TextField(controller: emailController, decoration: InputDecoration(labelText: 'Email')),
+            TextField(controller: passwordController, decoration: InputDecoration(labelText: 'Password'), obscureText: true),
+            SizedBox(height: 20),
+            isLoading
+                ? CircularProgressIndicator()
+                : ElevatedButton(onPressed: login, child: Text('Login')),
+            TextButton(
+              onPressed: () {
+                Navigator.push(context, MaterialPageRoute(builder: (context) => RegisterScreen()));
+              },
+              child: Text('Don’t have an account? Register'),
+            ),
           ],
         ),
       ),

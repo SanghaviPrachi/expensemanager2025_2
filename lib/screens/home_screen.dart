@@ -1,33 +1,24 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import '../auth/auth_service.dart';
 import 'login_screen.dart';
 
 class HomeScreen extends StatelessWidget {
-  const HomeScreen({Key? key}) : super(key: key);
-
-  void _logout(BuildContext context) async {
-    await FirebaseAuth.instance.signOut();
+  void logout(BuildContext context) async {
+    await AuthService().logoutUser();
     Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (context) => const LoginScreen()), // Redirect to LoginScreen
-    );
+        context, MaterialPageRoute(builder: (context) => LoginScreen()));
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Home"),
+        title: Text('Home'),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: () => _logout(context),
-          ),
+          IconButton(onPressed: () => logout(context), icon: Icon(Icons.logout))
         ],
       ),
-      body: const Center(
-        child: Text("Welcome to Expense Manager!"),
-      ),
+      body: Center(child: Text('Welcome to Expense Manager')),
     );
   }
 }

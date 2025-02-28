@@ -5,6 +5,7 @@ import 'firebase_options.dart';
 import 'auth/auth_service.dart';
 import 'screens/home_screen.dart';
 import 'screens/login_screen.dart';
+import 'screens/splash_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -17,7 +18,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      home: AuthWrapper(),
+      home: SplashScreen(),
     );
   }
 }
