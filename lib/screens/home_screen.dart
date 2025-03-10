@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'add_expense_screen.dart';
+import 'reports_screen.dart'; // ✅ Import the Reports screen
 
 class HomeScreen extends StatefulWidget {
   @override
@@ -116,7 +117,11 @@ class _HomeScreenState extends State<HomeScreen> {
                           builder: (context) => AddExpenseScreen()));
                 }),
                 _buildActionButton(Icons.pie_chart, "Reports", () {
-                  // Navigate to Reports
+                  // ✅ Navigate to Reports Screen
+                  Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (context) => ReportsScreen()));
                 }),
                 _buildActionButton(Icons.notifications, "Reminders", () {
                   // Navigate to Notifications
