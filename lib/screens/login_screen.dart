@@ -24,20 +24,28 @@ class _LoginScreenState extends State<LoginScreen> {
           context, MaterialPageRoute(builder: (context) => HomeScreen()));
     } catch (e) {
       setState(() => isLoading = false);
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(e.toString())));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(e.toString()),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Login')),
       body: Padding(
         padding: EdgeInsets.all(16.0),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
+            Image.network(
+              "https://cdn-icons-png.flaticon.com/512/5501/5501375.png",
+              height: 80,
+            ),
+            SizedBox(height: 20),
             TextField(controller: emailController, decoration: InputDecoration(labelText: 'Email')),
             TextField(controller: passwordController, decoration: InputDecoration(labelText: 'Password'), obscureText: true),
             SizedBox(height: 20),

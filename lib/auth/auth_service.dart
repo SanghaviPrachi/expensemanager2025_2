@@ -1,14 +1,14 @@
- import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
   Stream<User?> get authStateChanges => _auth.authStateChanges();
 
-  // Register User with error handling
   Future<User?> registerUser(String email, String password) async {
     try {
-      UserCredential userCredential = await _auth.createUserWithEmailAndPassword(
+      UserCredential userCredential =
+      await _auth.createUserWithEmailAndPassword(
         email: email,
         password: password,
       );
@@ -20,10 +20,10 @@ class AuthService {
     }
   }
 
-  // Login User with error handling
   Future<User?> loginUser(String email, String password) async {
     try {
-      UserCredential userCredential = await _auth.signInWithEmailAndPassword(
+      UserCredential userCredential =
+      await _auth.signInWithEmailAndPassword(
         email: email,
         password: password,
       );
@@ -35,12 +35,10 @@ class AuthService {
     }
   }
 
-  // Logout User
   Future<void> logoutUser() async {
     await _auth.signOut();
   }
 
-  // Handle Firebase Authentication Errors
   String _handleAuthError(FirebaseAuthException e) {
     switch (e.code) {
       case 'invalid-email':
