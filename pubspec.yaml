@@ -39,6 +39,11 @@ dependencies:
   intl: ^0.20.2
   provider: ^6.1.2
   fluttertoast: ^8.2.2
+  pdf: ^3.11.3
+  printing: ^5.14.2
+  path_provider: ^2.1.5
+  share_plus: ^10.1.4
+  google_fonts: ^6.2.1
 
 
   # The following adds the Cupertino Icons font to your application.
@@ -63,7 +68,14 @@ dev_dependencies:
 # The following section is specific to Flutter packages.
 flutter:
   assets:
-  - assets/logo.png
+    - assets/fonts/Roboto-Regular.ttf
+
+  fonts:
+      - family: Roboto
+        fonts:
+          - asset: assets/fonts/Roboto-Regular.ttf
+
+
   # The following line ensures that the Material Icons font is
   # included with your application, so that you can use the icons in
   # the material Icons class.
