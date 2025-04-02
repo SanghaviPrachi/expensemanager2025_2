@@ -35,15 +35,14 @@ class _SplitExpenseScreenState extends State<SplitExpenseScreen> {
   }
 
   void _addGroup() async {
+    if (_groupNameController.text.trim().isEmpty) return;
     String userId = FirebaseAuth.instance.currentUser!.uid;
-    if (_groupNameController.text.isNotEmpty) {
-      await FirebaseFirestore.instance.collection('groups').add({
-        'name': _groupNameController.text,
-        'members': [userId],
-        'expenses': []
-      });
-      _groupNameController.clear();
-    }
+    await FirebaseFirestore.instance.collection('groups').add({
+      'name': _groupNameController.text.trim(),
+      'members': [userId],
+      'expenses': []
+    });
+    _groupNameController.clear();
   }
 
   @override
@@ -55,7 +54,6 @@ class _SplitExpenseScreenState extends State<SplitExpenseScreen> {
           Padding(
             padding: EdgeInsets.all(16.0),
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Expanded(
                   child: TextField(
@@ -140,36 +138,33 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
   }
 
   void _addMember() async {
-    String email = _memberEmailController.text;
-    if (email.isNotEmpty) {
-      var userSnapshot = await FirebaseFirestore.instance.collection('users').where('email', isEqualTo: email).get();
-      if (userSnapshot.docs.isNotEmpty) {
-        String memberId = userSnapshot.docs.first.id;
-        await FirebaseFirestore.instance.collection('groups').doc(widget.groupId).update({
-          'members': FieldValue.arrayUnion([memberId])
-        });
-        _memberEmailController.clear();
-      }
+    String email = _memberEmailController.text.trim();
+    if (email.isEmpty) return;
+    var userSnapshot = await FirebaseFirestore.instance.collection('users').where('email', isEqualTo: email).get();
+    if (userSnapshot.docs.isNotEmpty) {
+      String memberId = userSnapshot.docs.first.id;
+      await FirebaseFirestore.instance.collection('groups').doc(widget.groupId).update({
+        'members': FieldValue.arrayUnion([memberId])
+      });
+      _memberEmailController.clear();
     }
   }
 
   void _addExpense() async {
-    double amount = double.tryParse(_expenseAmountController.text) ?? 0;
-    String title = _expenseTitleController.text;
-    if (amount > 0 && title.isNotEmpty && members.isNotEmpty) {
-      double splitAmount = amount / members.length;
-      List<Map<String, dynamic>> newExpenses = members.map((member) => {
-        'title': title,
-        'amount': splitAmount,
-        'payer': FirebaseAuth.instance.currentUser!.email,
-        'member': member
-      }).toList();
-      await FirebaseFirestore.instance.collection('groups').doc(widget.groupId).update({
-        'expenses': FieldValue.arrayUnion(newExpenses)
-      });
-      _expenseTitleController.clear();
-      _expenseAmountController.clear();
-    }
+    double? amount = double.tryParse(_expenseAmountController.text.trim());
+    if (amount == null || amount <= 0 || _expenseTitleController.text.trim().isEmpty || members.isEmpty) return;
+    double splitAmount = amount / members.length;
+    List<Map<String, dynamic>> newExpenses = members.map((member) => {
+      'title': _expenseTitleController.text.trim(),
+      'amount': splitAmount,
+      'payer': FirebaseAuth.instance.currentUser!.email,
+      'member': member
+    }).toList();
+    await FirebaseFirestore.instance.collection('groups').doc(widget.groupId).update({
+      'expenses': FieldValue.arrayUnion(newExpenses)
+    });
+    _expenseTitleController.clear();
+    _expenseAmountController.clear();
   }
 
   @override
