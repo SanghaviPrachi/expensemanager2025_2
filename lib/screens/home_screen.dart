@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'add_expense_screen.dart';
 import 'reports_screen.dart'; // ✅ Import the Reports screen
+import 'split_expense_screen.dart'; // ✅ Import the Split Expense screen
 
 class HomeScreen extends StatefulWidget {
   @override
@@ -123,8 +124,12 @@ class _HomeScreenState extends State<HomeScreen> {
                       MaterialPageRoute(
                           builder: (context) => ReportsScreen()));
                 }),
-                _buildActionButton(Icons.notifications, "Reminders", () {
-                  // Navigate to Notifications
+                _buildActionButton(Icons.group, "Split Expense", () {
+                  // ✅ Navigate to Split Expense Screen
+                  Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (context) => SplitExpenseScreen()));
                 }),
               ],
             ),
