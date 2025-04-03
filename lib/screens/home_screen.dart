@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'add_expense_screen.dart';
-import 'reports_screen.dart'; // ✅ Import the Reports screen
-import 'split_expense_screen.dart'; // ✅ Import the Split Expense screen
+import 'reports_screen.dart';
+import 'split_expense_screen.dart';
+import 'settings_screen.dart';
+import 'login_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   @override
@@ -69,45 +71,63 @@ class _HomeScreenState extends State<HomeScreen> {
           IconButton(
             icon: Icon(Icons.settings),
             onPressed: () {
-              // Navigate to Settings screen (to be implemented)
+              Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (context) => SettingsScreen()));
             },
           ),
-          IconButton(
-            icon: Icon(Icons.logout),
-            onPressed: () async {
-              await FirebaseAuth.instance.signOut();
-              Navigator.pushReplacementNamed(context, "/login");
-            },
-          ),
+
         ],
       ),
       body: Padding(
         padding: EdgeInsets.all(16.0),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            // Total Balance
-            Card(
-              elevation: 4,
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12)),
-              child: Padding(
-                padding: EdgeInsets.all(16),
+            Center(
+              child: Container(
+                width: MediaQuery.of(context).size.width * 0.8,
+                constraints: BoxConstraints(
+                  minHeight: 100,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.blueAccent,
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black26,
+                      blurRadius: 8,
+                      offset: Offset(0, 4),
+                    ),
+                  ],
+                ),
+                padding: EdgeInsets.all(20),
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    Text("Total Balance",
-                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                    SizedBox(height: 5),
-                    Text("₹${totalBalance.toStringAsFixed(2)}",
-                        style: TextStyle(fontSize: 24, fontWeight: FontWeight.w600)),
+                    Text(
+                      "Total Balance",
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                    SizedBox(height: 10),
+                    Text(
+                      "₹${totalBalance.toStringAsFixed(2)}",
+                      style: TextStyle(
+                        fontSize: 30,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white,
+                      ),
+                    ),
                   ],
                 ),
               ),
             ),
             SizedBox(height: 20),
-
-            // Quick Actions
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
@@ -118,14 +138,12 @@ class _HomeScreenState extends State<HomeScreen> {
                           builder: (context) => AddExpenseScreen()));
                 }),
                 _buildActionButton(Icons.pie_chart, "Reports", () {
-                  // ✅ Navigate to Reports Screen
                   Navigator.push(
                       context,
                       MaterialPageRoute(
                           builder: (context) => ReportsScreen()));
                 }),
                 _buildActionButton(Icons.group, "Split Expense", () {
-                  // ✅ Navigate to Split Expense Screen
                   Navigator.push(
                       context,
                       MaterialPageRoute(
@@ -134,19 +152,16 @@ class _HomeScreenState extends State<HomeScreen> {
               ],
             ),
             SizedBox(height: 20),
-
-            // Recent Transactions
             Text("Recent Transactions",
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-
             Expanded(
               child: ListView.builder(
                 itemCount: expenses.length,
                 itemBuilder: (context, index) {
                   var expense = expenses[index];
                   return Dismissible(
-                    key: Key(expense['id']), // Unique key for each item
-                    direction: DismissDirection.endToStart, // Swipe from right to left
+                    key: Key(expense['id']),
+                    direction: DismissDirection.endToStart,
                     background: Container(
                       alignment: Alignment.centerRight,
                       padding: EdgeInsets.only(right: 20),
@@ -154,7 +169,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       child: Icon(Icons.delete, color: Colors.white),
                     ),
                     onDismissed: (direction) {
-                      _deleteExpense(expense['id']); // Delete on swipe
+                      _deleteExpense(expense['id']);
                     },
                     child: _buildTransactionItem(
                         expense['title'],

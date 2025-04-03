@@ -4,6 +4,14 @@ import 'home_screen.dart';
 import 'register_screen.dart';
 
 class LoginScreen extends StatefulWidget {
+  static void logout(BuildContext context) async {
+    await AuthService().logoutUser();
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (context) => LoginScreen()),
+    );
+  }
+
   @override
   _LoginScreenState createState() => _LoginScreenState();
 }
