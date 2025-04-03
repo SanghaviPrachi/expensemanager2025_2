@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:expensemanager2025/screens/split_expense_screen.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class SplitExpenseScreen extends StatefulWidget {
@@ -18,6 +17,10 @@ class _SplitExpenseScreenState extends State<SplitExpenseScreen> {
       });
       _groupNameController.clear();
     }
+  }
+
+  void _deleteGroup(String groupId) {
+    FirebaseFirestore.instance.collection('groups').doc(groupId).delete();
   }
 
   @override
@@ -46,14 +49,28 @@ class _SplitExpenseScreenState extends State<SplitExpenseScreen> {
                 if (!snapshot.hasData) return Center(child: CircularProgressIndicator());
                 return ListView(
                   children: snapshot.data!.docs.map((doc) {
-                    return Card(
-                      child: ListTile(
-                        title: Text(doc['name']),
-                        trailing: Icon(Icons.arrow_forward_ios),
-                        onTap: () => Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => GroupDetailScreen(groupId: doc.id, groupName: doc['name']),
+                    return Dismissible(
+                      key: Key(doc.id),
+                      direction: DismissDirection.endToStart,
+                      background: Container(
+                        padding: EdgeInsets.symmetric(horizontal: 20),
+                        alignment: Alignment.centerRight,
+                        color: Colors.grey[300],
+                        child: Icon(Icons.delete, color: Colors.red),
+                      ),
+                      onDismissed: (direction) {
+                        _deleteGroup(doc.id);
+                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Group Deleted")));
+                      },
+                      child: Card(
+                        child: ListTile(
+                          title: Text(doc['name']),
+                          trailing: Icon(Icons.arrow_forward_ios),
+                          onTap: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => GroupDetailScreen(groupId: doc.id, groupName: doc['name']),
+                            ),
                           ),
                         ),
                       ),
@@ -98,11 +115,7 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
         var data = doc.data() as Map<String, dynamic>;
 
         setState(() {
-          members = (data['members'] as List<dynamic>?)
-              ?.map((e) => e.toString()) // Ensure members are stored as Strings
-              .toList() ??
-              [];
-
+          members = (data['members'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? [];
           if (_paidBy == null && members.isNotEmpty) {
             _paidBy = members.first;
           }
@@ -111,13 +124,34 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
     });
   }
 
+  void _updateSplit() async {
+    var expenses = await FirebaseFirestore.instance.collection('groups').doc(widget.groupId).collection('expenses').get();
+
+    for (var expense in expenses.docs) {
+      double totalAmount = expense['amount'];
+      double individualShare = members.isNotEmpty ? totalAmount / members.length : 0.0;
+
+      await expense.reference.update({'individualShare': individualShare});
+    }
+  }
+
   void _inviteMember() {
     if (_memberEmailController.text.isNotEmpty) {
       FirebaseFirestore.instance.collection('groups').doc(widget.groupId).update({
         'members': FieldValue.arrayUnion([_memberEmailController.text]),
+      }).then((_) {
+        _updateSplit();
       });
       _memberEmailController.clear();
     }
+  }
+
+  void _removeMember(String member) {
+    FirebaseFirestore.instance.collection('groups').doc(widget.groupId).update({
+      'members': FieldValue.arrayRemove([member]),
+    }).then((_) {
+      _updateSplit();
+    });
   }
 
   void _addExpense() {
@@ -141,12 +175,9 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
   }
 
   void _deleteExpense(String expenseId) {
-    FirebaseFirestore.instance
-        .collection('groups')
-        .doc(widget.groupId)
-        .collection('expenses')
-        .doc(expenseId)
-        .delete();
+    FirebaseFirestore.instance.collection('groups').doc(widget.groupId).collection('expenses').doc(expenseId).delete().then((_) {
+      _updateSplit();
+    });
   }
 
   @override
@@ -163,26 +194,30 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
                 shrinkWrap: true,
                 itemCount: members.length,
                 itemBuilder: (context, index) {
-                  return ListTile(
-                    title: Text(members[index]),
+                  return Dismissible(
+                    key: Key(members[index]),
+                    direction: DismissDirection.endToStart,
+                    background: Container(
+                      padding: EdgeInsets.symmetric(horizontal: 20),
+                      alignment: Alignment.centerRight,
+                      color: Colors.grey[300],
+                      child: Icon(Icons.delete, color: Colors.red),
+                    ),
+                    onDismissed: (direction) {
+                      _removeMember(members[index]);
+                    },
+                    child: ListTile(
+                      title: Text(members[index]),
+                    ),
                   );
                 },
               ),
             ),
-            Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: _memberEmailController,
-                    decoration: InputDecoration(labelText: 'Invite Member Email'),
-                  ),
-                ),
-                IconButton(
-                  icon: Icon(Icons.person_add),
-                  onPressed: _inviteMember,
-                ),
-              ],
+            TextField(
+              controller: _memberEmailController,
+              decoration: InputDecoration(labelText: 'Invite Member Email'),
             ),
+            IconButton(icon: Icon(Icons.person_add), onPressed: _inviteMember),
             DropdownButton<String>(
               value: _paidBy,
               onChanged: (String? newValue) {
@@ -207,11 +242,7 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
               keyboardType: TextInputType.number,
               decoration: InputDecoration(labelText: 'Amount (INR)'),
             ),
-            SizedBox(height: 10),
-            ElevatedButton(
-              onPressed: _addExpense,
-              child: Text('Add Expense'),
-            ),
+            ElevatedButton(onPressed: _addExpense, child: Text('Add Expense')),
             Expanded(
               child: StreamBuilder(
                 stream: FirebaseFirestore.instance.collection('groups').doc(widget.groupId).collection('expenses').snapshots(),
@@ -225,24 +256,10 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
                       var expense = expenses[index];
                       var data = expense.data() as Map<String, dynamic>;
 
-                      return Dismissible(
-                        key: Key(expense.id),
-                        direction: DismissDirection.endToStart,
-                        background: Container(
-                          alignment: Alignment.centerRight,
-                          padding: EdgeInsets.only(right: 20),
-                          color: Colors.red,
-                          child: Icon(Icons.delete, color: Colors.white),
-                        ),
-                        onDismissed: (direction) {
-                          _deleteExpense(expense.id);
-                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Expense Deleted")));
-                        },
-                        child: ListTile(
-                          title: Text(data['title'] ?? 'Unknown Expense'),
-                          subtitle: Text('Total Amount: ₹${data['amount']}\nEach Share: ₹${data['individualShare'] ?? 'N/A'}'),
-                          trailing: Text('Paid by: ${data['paidBy']}'),
-                        ),
+                      return ListTile(
+                        title: Text(data['title'] ?? 'Unknown Expense'),
+                        subtitle: Text('₹${data['amount']} | Each Share: ₹${data['individualShare']}'),
+                        trailing: Text('Paid by: ${data['paidBy']}'),
                       );
                     },
                   );
