@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../auth/auth_service.dart';
 import 'home_screen.dart';
-import 'login_screen.dart';
 
 class RegisterScreen extends StatefulWidget {
   @override
@@ -9,6 +8,8 @@ class RegisterScreen extends StatefulWidget {
 }
 
 class _RegisterScreenState extends State<RegisterScreen> {
+  final TextEditingController nameController = TextEditingController();
+  final TextEditingController phoneController = TextEditingController();
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
   bool isLoading = false;
@@ -17,8 +18,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
     setState(() => isLoading = true);
     try {
       await AuthService().registerUser(
-        emailController.text.trim(),
-        passwordController.text.trim(),
+        name: nameController.text.trim(),
+        phone: phoneController.text.trim(),
+        email: emailController.text.trim(),
+        password: passwordController.text.trim(),
       );
       Navigator.pushReplacement(
         context,
@@ -48,21 +51,17 @@ class _RegisterScreenState extends State<RegisterScreen> {
               height: 80,
             ),
             SizedBox(height: 20),
-            TextField(
-                controller: emailController,
-                decoration: InputDecoration(labelText: 'Email')),
-            TextField(
-                controller: passwordController,
-                decoration: InputDecoration(labelText: 'Password'),
-                obscureText: true),
+            TextField(controller: nameController, decoration: InputDecoration(labelText: 'Full Name')),
+            TextField(controller: phoneController, decoration: InputDecoration(labelText: 'Phone')),
+            TextField(controller: emailController, decoration: InputDecoration(labelText: 'Email')),
+            TextField(controller: passwordController, decoration: InputDecoration(labelText: 'Password'), obscureText: true),
             SizedBox(height: 20),
             isLoading
                 ? CircularProgressIndicator()
                 : ElevatedButton(onPressed: register, child: Text('Register')),
-            SizedBox(height: 10),
             TextButton(
               onPressed: () {
-                Navigator.pop(context); // Navigates back to Login Screen
+                Navigator.pop(context);
               },
               child: Text('Already have an account? Login'),
             ),

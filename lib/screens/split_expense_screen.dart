@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:expensemanager2025/screens/split_expense_screen.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 
 class SplitExpenseScreen extends StatefulWidget {
   @override
@@ -23,14 +23,12 @@ class _SplitExpenseScreenState extends State<SplitExpenseScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Split Expense', style: TextStyle(fontWeight: FontWeight.bold)),
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            TextField(
+      appBar: AppBar(title: Text('Split Expense')),
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: TextField(
               controller: _groupNameController,
               decoration: InputDecoration(
                 labelText: 'Group Name',
@@ -40,34 +38,32 @@ class _SplitExpenseScreenState extends State<SplitExpenseScreen> {
                 ),
               ),
             ),
-            SizedBox(height: 10),
-            Expanded(
-              child: StreamBuilder(
-                stream: FirebaseFirestore.instance.collection('groups').snapshots(),
-                builder: (context, AsyncSnapshot<QuerySnapshot> snapshot) {
-                  if (!snapshot.hasData) return Center(child: CircularProgressIndicator());
-                  return ListView(
-                    children: snapshot.data!.docs.map((doc) {
-                      return Card(
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                        child: ListTile(
-                          title: Text(doc['name'], style: TextStyle(fontWeight: FontWeight.bold)),
-                          trailing: Icon(Icons.arrow_forward_ios),
-                          onTap: () => Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => GroupDetailScreen(groupId: doc.id, groupName: doc['name']),
-                            ),
+          ),
+          Expanded(
+            child: StreamBuilder(
+              stream: FirebaseFirestore.instance.collection('groups').snapshots(),
+              builder: (context, AsyncSnapshot<QuerySnapshot> snapshot) {
+                if (!snapshot.hasData) return Center(child: CircularProgressIndicator());
+                return ListView(
+                  children: snapshot.data!.docs.map((doc) {
+                    return Card(
+                      child: ListTile(
+                        title: Text(doc['name']),
+                        trailing: Icon(Icons.arrow_forward_ios),
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => GroupDetailScreen(groupId: doc.id, groupName: doc['name']),
                           ),
                         ),
-                      );
-                    }).toList(),
-                  );
-                },
-              ),
+                      ),
+                    );
+                  }).toList(),
+                );
+              },
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -87,15 +83,31 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
   final TextEditingController _memberEmailController = TextEditingController();
   final TextEditingController _expenseTitleController = TextEditingController();
   final TextEditingController _expenseAmountController = TextEditingController();
-  List<dynamic> members = [];
+  String? _paidBy;
+  List<String> members = [];
 
   @override
   void initState() {
     super.initState();
+    _fetchGroupDetails();
+  }
+
+  void _fetchGroupDetails() {
     FirebaseFirestore.instance.collection('groups').doc(widget.groupId).snapshots().listen((doc) {
-      setState(() {
-        members = doc['members'] ?? [];
-      });
+      if (doc.exists && doc.data() != null) {
+        var data = doc.data() as Map<String, dynamic>;
+
+        setState(() {
+          members = (data['members'] as List<dynamic>?)
+              ?.map((e) => e.toString()) // Ensure members are stored as Strings
+              .toList() ??
+              [];
+
+          if (_paidBy == null && members.isNotEmpty) {
+            _paidBy = members.first;
+          }
+        });
+      }
     });
   }
 
@@ -104,30 +116,37 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
       FirebaseFirestore.instance.collection('groups').doc(widget.groupId).update({
         'members': FieldValue.arrayUnion([_memberEmailController.text]),
       });
-      FirebaseFirestore.instance.collection('users').doc(_memberEmailController.text).update({
-        'groups': FieldValue.arrayUnion([widget.groupId])
-      });
-      _sendEmailInvitation(_memberEmailController.text);
       _memberEmailController.clear();
     }
   }
 
-  void _sendEmailInvitation(String email) {
-    // Implement email sending logic
-    print('Sending invitation to $email');
-  }
-
   void _addExpense() {
-    if (_expenseTitleController.text.isNotEmpty && _expenseAmountController.text.isNotEmpty) {
+    if (_expenseTitleController.text.isNotEmpty &&
+        _expenseAmountController.text.isNotEmpty &&
+        _paidBy != null) {
+      double totalAmount = double.tryParse(_expenseAmountController.text) ?? 0.0;
+      double individualShare = members.isNotEmpty ? totalAmount / members.length : 0.0;
+
       FirebaseFirestore.instance.collection('groups').doc(widget.groupId).collection('expenses').add({
         'title': _expenseTitleController.text,
-        'amount': double.parse(_expenseAmountController.text),
-        'currency': 'INR',
+        'amount': totalAmount,
         'splitAmong': members,
+        'individualShare': individualShare,
+        'paidBy': _paidBy,
       });
+
       _expenseTitleController.clear();
       _expenseAmountController.clear();
     }
+  }
+
+  void _deleteExpense(String expenseId) {
+    FirebaseFirestore.instance
+        .collection('groups')
+        .doc(widget.groupId)
+        .collection('expenses')
+        .doc(expenseId)
+        .delete();
   }
 
   @override
@@ -164,6 +183,21 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
                 ),
               ],
             ),
+            DropdownButton<String>(
+              value: _paidBy,
+              onChanged: (String? newValue) {
+                setState(() {
+                  _paidBy = newValue;
+                });
+              },
+              items: members.map<DropdownMenuItem<String>>((member) {
+                return DropdownMenuItem<String>(
+                  value: member,
+                  child: Text(member),
+                );
+              }).toList(),
+              hint: Text('Select who paid'),
+            ),
             TextField(
               controller: _expenseTitleController,
               decoration: InputDecoration(labelText: 'Expense Title'),
@@ -183,14 +217,34 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
                 stream: FirebaseFirestore.instance.collection('groups').doc(widget.groupId).collection('expenses').snapshots(),
                 builder: (context, AsyncSnapshot<QuerySnapshot> snapshot) {
                   if (!snapshot.hasData) return Center(child: CircularProgressIndicator());
-                  return ListView(
-                    shrinkWrap: true,
-                    children: snapshot.data!.docs.map((doc) {
-                      return ListTile(
-                        title: Text(doc['title']),
-                        subtitle: Text('Amount: ₹${doc['amount']} INR'),
+                  var expenses = snapshot.data!.docs;
+
+                  return ListView.builder(
+                    itemCount: expenses.length,
+                    itemBuilder: (context, index) {
+                      var expense = expenses[index];
+                      var data = expense.data() as Map<String, dynamic>;
+
+                      return Dismissible(
+                        key: Key(expense.id),
+                        direction: DismissDirection.endToStart,
+                        background: Container(
+                          alignment: Alignment.centerRight,
+                          padding: EdgeInsets.only(right: 20),
+                          color: Colors.red,
+                          child: Icon(Icons.delete, color: Colors.white),
+                        ),
+                        onDismissed: (direction) {
+                          _deleteExpense(expense.id);
+                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Expense Deleted")));
+                        },
+                        child: ListTile(
+                          title: Text(data['title'] ?? 'Unknown Expense'),
+                          subtitle: Text('Total Amount: ₹${data['amount']}\nEach Share: ₹${data['individualShare'] ?? 'N/A'}'),
+                          trailing: Text('Paid by: ${data['paidBy']}'),
+                        ),
                       );
-                    }).toList(),
+                    },
                   );
                 },
               ),
