@@ -215,7 +215,7 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
             ),
             TextField(
               controller: _memberEmailController,
-              decoration: InputDecoration(labelText: 'Invite Member Email'),
+              decoration: InputDecoration(labelText: 'Add Member'),
             ),
             IconButton(icon: Icon(Icons.person_add), onPressed: _inviteMember),
             DropdownButton<String>(
